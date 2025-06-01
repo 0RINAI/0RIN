@@ -1,4 +1,4 @@
-# QU3-App Development Guide
+# 0RIN-App Development Guide
 
 This guide provides comprehensive information for developers working on the qu3-app project.
 
@@ -24,8 +24,8 @@ This guide provides comprehensive information for developers working on the qu3-
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/qu3ai/qu3-app.git
-   cd qu3-app
+   git clone https://github.com/0RINAI/0RIN-app.git
+   cd 0RIN-app
    ```
 
 2. **Create and activate virtual environment:**
@@ -56,7 +56,7 @@ For easier dependency management, especially with liboqs:
 
 1. **Build the Docker image:**
    ```bash
-   docker build -t qu3-app .
+   docker build -t c0rin-app .
    ```
 
 2. **Run with Docker Compose:**
