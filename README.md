@@ -30,42 +30,39 @@ User CLI (Type)
 # Key Management Overview
 Keys are crucial for the security protocols. Here's how they are managed:
 
-graph LR
-    subgraph Client Side
-        A["CLI: generate-keys"] --> B{"src_main.py"};
-        B --> C["src_pqc_utils.py"]:::pqc --> D{"Generate KEM/Sign Pairs"};
-        D --> E["src_config_utils.py"]:::config --> F["Save Client Keys (.pub, .sec)"];
+![image](https://github.com/user-attachments/assets/957517f2-27d4-42da-9167-6db2ea4dd05f)
 
-        G["CLI: run-inference/etc."] --> B;
-        B --> H{"Initialize Client"};
-        H --> E --> I{"Load Client Keys?"};
-        I -- Found --> J["Use Keys"];
-        I -- Not Found --> D;
+# Core Components
+src/main.py: Command-line interface (CLI) built with Typer. Handles user commands, orchestrates client operations, and displays results. Includes commands for key generation, inference, agent workflows, and policy updates.
+src/mcp_client.py: The main client class (MCPClient) responsible for:
+Managing PQC keys.
+Defining request (MCPRequest) and response (MCPResponse) data structures.
+Establishing secure sessions via KEM handshake (connect).
+Sending signed and encrypted requests (send_request).
+Processing and verifying encrypted/signed responses.
+Handling disconnection (disconnect).
+src/pqc_utils.py: Utility functions for PQC operations (Kyber KEM, SPHINCS+ signing) using liboqs-python, AES-GCM encryption/decryption using cryptography, and HKDF key derivation.
+src/config_utils.py: Handles loading configuration from config.yaml, loading/saving keys from/to files, and fetching server public keys from the /keys endpoint.
+scripts/mock_mcp_server.py: A FastAPI development/test server that simulates an MCP environment. Implements the server-side logic for KEM handshake, request decryption/verification, basic model execution, attestation signing, response encryption, policy updates, and key distribution.
+config.yaml: Configuration file for storing settings like the default key directory (key_directory) and server URL (server_url).
+tests/: Directory containing unit tests (unittest) for core components (pqc_utils, config_utils, mcp_client).
 
-        H --> E --> K{"Load Server Keys?"};
-        K -- Found --> J;
-        K -- Not Found --> L{"Fetch Server Keys?"};
-        L -- Calls --> E --> M["GET /keys"]:::net;
-        M -- Response --> E --> N["Save Server Keys (.pub)"];
-        N --> J;
-        L -- Fetch Fail --> O["(Error - Cannot Proceed)"];
-    end
-
-    subgraph "Server Side (Mock)" 
-        P["Server Startup"] --> Q["scripts_mock_mcp_server.py"];
-        Q --> R["src_config_utils.py"]:::config --> S{"Load/Generate Server Keys"};
-        S --> T["Save Server Keys (.pub, .sec)"];
-        Q --> U["Register /keys Endpoint"];
-        U -- Request for /keys --> V{"Return Server Public Keys"};
-    end
-
-    subgraph "Filesystem (Key Dir)"
-        F
-        T
-        N
-    end
-
-    classDef pqc fill:#f9d,stroke:#333,stroke-width:2px;
-    classDef config fill:#cfc,stroke:#333,stroke-width:2px;
-    classDef net fill:#cdf,stroke:#333,stroke-width:2px;
-
+# Features
+PQC Algorithms: Uses NIST PQC finalists:
+KEM: Kyber-768
+Signature: SPHINCS+-SHA2-128f-simple
+PQC Key Management: Generates and loads Kyber and SPHINCS+ key pairs.
+Secure Session Establishment: Uses Kyber KEM over a network handshake (/kem-handshake/initiate) to establish a shared secret.
+Key Derivation: Derives a 32-byte AES-256 key from the KEM shared secret using HKDF-SHA256.
+Encrypted Communication: Encrypts request/response payloads (after KEM handshake) using AES-256-GCM with the derived session key.
+Client Authentication: Client signs requests using SPHINCS+; server verifies.
+Server Attestation: Server signs responses (attestation data) using SPHINCS+; client verifies.
+Configuration: Loads key directory and server URL from config.yaml.
+Automated Server Key Fetching: Client automatically fetches server public keys from the /keys endpoint if not found locally.
+CLI Commands:
+generate-keys: Creates client key pairs.
+run-inference: Sends a single, secured inference request.
+run-agent: Executes a sequential workflow (modelA->modelB), passing outputs as inputs (wraps non-dict output), with step-by-step reporting and robust failure handling.
+update-policy: Sends an encrypted and signed policy file to the server.
+Mock Server: Includes endpoints (/, /keys, /kem-handshake/initiate, /inference, /policy-update) implementing the corresponding server-side PQC and communication logic for testing. Provides example models model_caps and model_reverse.
+Unit Tests: Includes unit tests covering core cryptographic utilities, configuration management, and client communication logic (with network mocking).
